@@ -7,6 +7,7 @@ import {
 } from "../FoodDialog/FoodDialog";
 import { formatPrice } from "../Data/FoodData";
 import { getPrice } from "../FoodDialog/FoodDialog";
+const database = window.firebase.database();
 
 const OrderStyled = styled.div`
   position: fixed;
@@ -54,11 +55,41 @@ const DetailItem = styled.div`
   font-size: 10px;
 `;
 
-export function Order({ orders, setOrders, setOpenFood }) {
+function sendOrder(orders, { email, displayName }) {
+  var newOrderRef = database.ref("orders").push();
+  const newOrders = orders.map(order => {
+    return Object.keys(order).reduce((acc, orderKey) => {
+      if (!order[orderKey]) {
+        // undefined value
+        return acc;
+      }
+      if (orderKey === "toppings") {
+        return {
+          ...acc,
+          [orderKey]: order[orderKey]
+          .filter(({ checked }) => checked)
+          .map(({ name }) => name)
+        };
+      }
+      return {
+        ...acc,
+        [orderKey]: order[orderKey]
+      };
+    }, {});
+  });
+  newOrderRef.set({
+    order: newOrders,
+    email,
+    displayName
+  });
+}
+
+
+export function Order({ orders, setOrders, setOpenFood, login, loggedIn, setOpenOrderDialog }) {
   const subtotal = orders.reduce((total, order) => {
     return total + getPrice(order);
   }, 0);
-  const tax = subtotal * 0.08;
+  const tax = subtotal * 0.07;
   const total = subtotal + tax;
 
   const deleteItem = index => {
@@ -66,7 +97,6 @@ export function Order({ orders, setOrders, setOpenFood }) {
     newOrders.splice(index, 1);
     setOrders(newOrders);
   };
-
   return (
     <OrderStyled>
       {orders.length === 0 ? (
@@ -122,9 +152,16 @@ export function Order({ orders, setOrders, setOpenFood }) {
           </OrderContainer>
         </OrderContent>
       )}
-      <DialogFooter>
-        <ConfirmButton>Checkout</ConfirmButton>
-      </DialogFooter>
+      {orders.length > 0 && <DialogFooter>
+         <ConfirmButton onClick={() => {
+          if (loggedIn) {
+            setOpenOrderDialog(true);
+            sendOrder(orders, loggedIn);
+          } else {
+            login();
+          }
+        }}>Checkout</ConfirmButton>
+      </DialogFooter> }
     </OrderStyled>
   );
 }

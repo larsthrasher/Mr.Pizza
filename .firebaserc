@@ -1,5 +1,7 @@
 {
   "projects": {
-    "default": "mr-pizza-bec22"
-  }
+    "default": "mr-pizza-bec22",
+    "mr.pizza": "mr-pizza-bec22"
+  },
+  "targets": {}
 }
